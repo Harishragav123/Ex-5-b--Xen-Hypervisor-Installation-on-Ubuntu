@@ -1,277 +1,77 @@
-# Ex-06-Pseudo-Node-Configuration-for-Hadoop-on-Ubuntu
+# Ex-5-b--Xen-Hypervisor-Installation-on-Ubuntu
 
-## AIM
+## Aim:
 
-To implement Pseudo Node configuration for Hadoop on ubuntu
+To Install Xen Hypervisor (Para Virtualization) and Virtual Manager on Ubuntu 14.04.1
 
-## Pre-requisites
+## Procedure:
 
-a) jdk
+### 1.	Install Ubuntu 14.04.1 and more importantly enable virtualization in boot options
 
-Single-Node Configuration
+### 2.	Open terminal and install xen hypervisor
 
-## 1.	Create a dedicated user account for hadoop
+    sudo apt-get install xen-hypervisor-amd64
+  
+(Installing 64-bit hypervisor runs on 32 bit dom0 and also creates 64 bit domU) Then reboot (you don’t have to update grub)
+  
+    sudo reboot
 
-        $sudo addgroup hadoop
+### 3.	After rebooting just to check if Xen booted with Linux
 
-        $sudo adduser --ingroup hadoop hduser
+    sudo xl info
 
-        $sudo usermod -a -G sudo hduser
+    sudo apt-get install bridge-utils
 
-        $su - hduser
-  	
-## 2.	Install java1.8 in folder /usr/local
+### 4.	Open /etc/network/interfaces and change it sudo gedit /etc/network/interfaces and type the following
 
-        $sudo chmod 777 /usr/local
+    auto lo
 
-        $cd /usr/local
+    iface lo inet loopback
 
-        $sudo tar xvzf $HOME/Downloads/jdk1.8.tar.gz
 
-## 3.	Install Hadoop
+    auto xenbr0
 
-        $cd /usr/local
+    iface xenbr0 inet dhcp bridge_ports eth0
 
-        $tar xvzf $HOME/Downloads/hadoop-2.5.1.tar.gz
 
-        $sudo chmod 777 hadoop-2.5.1
+    auto eth0
 
-## 4.	Set the hadoop environment variables: Include the following lines in the $HOME/.bashrc file
+    iface eth0 inet manual
 
-##### #Set Hadoop-related environment variables
-  	export HADOOP_HOME=/usr/local/hadoop-2.5.1 
-##### #Set JAVA home directory
-        export JAVA_HOME=/usr/local/jdk1.8.0_31 
-##### #Add Hadoop bin/ directory to PATH
-        export PATH=$PATH:$HADOOP_HOME/bin
+  Then restart network manager
+
+    sudo ifdown eth0 && sudo ifup xenbr0 && sudo ifup eth0
+
+### 5.	Now install Virtual Machine Manager
+
+    sudo apt-get install virt-manager
  
-## 5.	Set hadoop environment variables: Include the following lines /etc/profile file
+Now restart your system.
 
-##### #--insert JAVA_HOME
-        JAVA_HOME=/usr/local/jdk1.8.0_31 
-##### #--insert HADOOP_PREFIX
-        HADOOP_PREFIX=/usr/local/hadoop-2.5.1
-##### #--in PATH variable just append at the end of the line 
-        PATH=$PATH: $JAVA_HOME/bin:$HADOOP_PREFIX/bin
-##### #--Append HADOOP_PREFIX at end of the export statement export 
-        PATH JAVA_HOME HADOOP_PREFIX
+### 6.	Open virtual machine manager and then start creating your virtual machines.
 
-## 6.	Run the.bashrc & profile files from the $ prompt for updating the changes
+•	Click on create a new virtual machine icon.
 
-        $ source $HOME/.bashrc
+•	Enter new VM name and select the process of installing OS.
+(local media/network install/network boot/import existing disk image)
 
-        $ source /etc/profile
+•	Locate your media for installing OS either through CD-ROM, or ISO image along with OS type and version.
 
- ##### Verify java & hadoop installation using
-        $ java -version
-        $ echo $HADOOP_PREFIX
-        $ cd $HADOOP_PREFIX
+•	Choose Memory and CPU settings by specifying RAM size and number of CPUs.
 
-        $ bin/hadoop version	
+•	Enable the storage of the VM by specifying disk size.
 
-## 7.	Configuration of the hadoop files: hadoop-env.sh, core-site.xml, mapred-site.xml, hdfs- site.xml and yarn-site.xml
+•	Now the OS is ready to begin it’s installation process in your VM.
 
-        path ::	/usr/local/hadoop-2.5.1/etc/hadoop
-
-a)	hadoop-env.sh
-Include the following lines in hadoop-env.sh file
-
-        export JAVA_HOME=/usr/local/jdk1.8.0_31
-        export HADOOP_PREFIX=/usr/local/hadoop-2.5.1
-
-b)	core-site.xml
-Configure the directory for Hadoop to store its data files, the network ports it listens to, etc. Setup will use Hadoop’s Distributed File System (HDFS-single local machine)
-
-        $ mkdir -p /app/hadoop/tmp
-        $ chown hduser:hadoop /app/hadoop/tmp
-
- 
-Include the following lines in core-site.xml file between <configuration> and
-</configuration> tags
-
-        <property>
-                <name>hadoop.tmp.dir</name>
-                <value>/app/hadoop/tmp</value>
-        </property>
-        <property>
-                <name>fs.default.name</name>
-                <value>hdfs://localhost:9000</value>
-        </property>
-
-c)	mapred-site.xml
-
-         $sudo cp mapred-site.xml.template mapred-site.xml
-
-Include the following lines in mapred-site.xml file
-
-        <property>
-                <name>mapreduce.framework.name</name>
-                <value>yarn</value>
-        </property>
- 
-
-d)	hdfs-site.xml
-Include the following lines in hdfs-site.xml file
-
-        <property>
-                <name>dfs.replication</name>
-                <value>1</value>
-        </property>
-
-e)	yarn-site.xml
-Include the following lines in yarn-site.xml file
-
-        <property>
-                <name>yarn.nodemanager.aux-services</name>
-                <value>mapreduce_shuffle</value>
-        </property>
+### 7.	Now the VM is ready with the specified OS installed within it.
 
 
-## 8.	Format the Hadoop File system implemented on top of the local file system using
-
-        $/usr/local/hadoop-2.5.1/bin/hadoop namenode –format	
-
-## 9.	Start Hadoop using
-
-        $sbin/start-all.sh
 
 
-Explore Hadoop using http://localhost:50070/ from the browser	
- 
-## 10.	The commonly used HDFS Commands are as follows:
-    
-    ### mkdir :
-    ##### Creates a directory in the given path:
-        syntax: bin/hdfs dfs -mkdir <paths>
-
-    ### ls
-    ##### Lists the files in a given path
-        syntax:bin/hdfs dfs -ls <args>
-   	
-    ### cp
-    ##### Copies files from source to destination. This command allows multiple sources as well in which case the destination must be a directory.
-        syntax:bin/hdfs dfs -cp <source> <dest>
-
-## 11.	Create a directory ‘/input’ in HDFS
-
-        $bin/hdfs dfs -mkdir /input
 
 
-## 12.	Copy the input files into the distributed file system
-
-        $cd $HOME/Downloads/
-
-        $ tar xvzf $HOME/Downloads/mrsampledata.tar.gz
-
-## 13.	Run some of the examples provided
 
 
-        $ bin/hadoop jar share/hadoop/mapreduce/hadoop-mapreduce- examples-2.5.1.jar grep /input /output '(CSE)'
-   	
-
-## 14.	Examine the output files
-
-        $ cd $HADOOP_PREFIX
-
-        $bin/hdfs dfs -put $HOME/Downloads/mrsampledata/* /input
-
- Copy the output files from the distributed file system to the local file system and examine them:
-
-        $ bin/hdfs dfs -get output output
-        
-        $ cat output/*
- 
-or
-View the output files on the distributed file system
-
-        $ bin/hdfs dfs -cat /output/*
-        
 
 ## Result:
-Thus, the implementation of Pseudo Node configuration for Hadoop on ubuntu is successfully executed.
-# Ex-06-Pseudo-Node-Configuration-for-Hadoop-on-Ubuntu
-
-## AIM
-
-To implement Pseudo Node configuration for Hadoop on ubuntu
-
-## Pre-requisites
-
-a) jdk
-
-Single-Node Configuration
-
-1.	Create a dedicated user account for hadoop
-
-2.	Install java1.8 in folder /usr/local
-3.	Install Hadoop
-
-4.	Set the hadoop environment variables: Include the following lines in the
-$HOME/.bashrc file
-
- 
-5.	Set hadoop environment variables: Include the following lines /etc/profile file
-
-
-6.	Run the.bashrc & profile files from the $ prompt for updating the changes
-
-
-
-
-$ bin/hadoop version	
-
-7.	Configuration of the hadoop files: hadoop-env.sh, core-site.xml, mapred-site.xml, hdfs- site.xml and yarn-site.xml
-
-path ::	/usr/local/hadoop-2.5.1/etc/hadoop
-
-a)	hadoop-env.sh
-Include the following lines in hadoop-env.sh file
-
-
-b)	core-site.xml
-Configure the directory for Hadoop to store its data files, the network ports it listens to, etc. Setup will use Hadoop’s Distributed File System (HDFS-single local machine)
-
-
- 
-Include the following lines in core-site.xml file between <configuration> and
-</configuration> tags
-
-
-c)	mapred-site.xml
- 
-
-Include the following lines in mapred-site.xml file
- 
-
-d)	hdfs-site.xml
-Include the following lines in hdfs-site.xml file
-
-
-e)	yarn-site.xml
-Include the following lines in yarn-site.xml file
-8.	Format the Hadoop File system implemented on top of the local file system using
-
-9.	Start Hadoop using
-
-
-Explore Hadoop using http://localhost:50070/ from the browser	
- 
-10.	The commonly used HDFS Commands are as follows:
-
-
-11.	Create a directory ‘/input’ in HDFS
-
-
-12.	Copy the input files into the distributed file system
-
-13.	Run some of the examples provided
-
-
-14.	Examine the output files
-Copy the output files from the distributed file system to the local file system and examine them:
- 
-or
-View the output files on the distributed file system
-
-## Result:
-Thus, the implementation of Pseudo Node configuration for Hadoop on ubuntu is successfully executed
+Thus, to Install Xen Hypervisor (Para Virtualization) and Virtual Manager on Ubuntu 14.04.1is successfully implemented.
